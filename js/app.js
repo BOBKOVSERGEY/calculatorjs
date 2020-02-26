@@ -54,10 +54,23 @@ const startButton = document.querySelector('.start-button'),
       totalPriceSum = document.querySelector('.total_price__sum'),
       adapt = document.getElementById('adapt'),
       mobileTemplates = document.getElementById('mobileTemplates'),
+      desktopTemplates = document.getElementById('desktopTemplates'),
+      editable = document.getElementById('editable'),
+      adaptValue = document.querySelector('.adapt_value'),
+      mobileTemplatesValue = document.querySelector('.mobileTemplates_value'),
+      desktopTemplatesValue = document.querySelector('.desktopTemplates_value'),
+      editableValue = document.querySelector('.editable_value'),
       typeSite = document.querySelector('.type-site'),
       maxDeadline = document.querySelector('.max-deadline'),
       rangeDeadline = document.querySelector('.range-deadline'),
-      deadlineValue = document.querySelector('.deadline-value');
+      deadlineValue = document.querySelector('.deadline-value'),
+      calcDescription = document.querySelector('.calc-description'),
+      metrikaYandex = document.getElementById('metrikaYandex'),
+      analyticsGoogle = document.getElementById('analyticsGoogle'),
+      sendOrder = document.getElementById('sendOrder'),
+      cardHead = document.querySelector('.card-head'),
+      totalPrice = document.querySelector('.total_price'),
+      firstFieldset = document.querySelector('.first-fieldset');
 //console.dir(startButton);
 //console.log(startButton);
 const declOfNum = (n, titles) => {
@@ -72,6 +85,41 @@ const hideElem = (elem) => {
   elem.style.display = 'none';
 };
 
+const dopOptionsString = () => {
+  let str = '';
+
+  if (metrikaYandex.checked || analyticsGoogle.checked || sendOrder.checked) {
+    str += 'Подключим';
+    if (metrikaYandex.checked) {
+      str += ' Яндекс Метрику';
+
+      if (analyticsGoogle.checked && sendOrder.checked) {
+        str += ', Гугл Аналитику и отправку заявок на почту.'
+        return
+      }
+      if (analyticsGoogle.checked || sendOrder.checked) {
+        str += ' и';
+      }
+    }
+
+    if (analyticsGoogle.checked) {
+      str += ' Гугл Аналитику';
+      if (sendOrder.checked) {
+        str += ' и';
+      }
+    }
+
+    if (sendOrder.checked ) {
+      str += ' отправку заявок на почту';
+    }
+
+    str += '.';
+
+  }
+  return str;
+};
+
+
 const renderTextContent = (total, site, maxDay, minDay) => {
 
   totalPriceSum.textContent = total;
@@ -83,14 +131,27 @@ const renderTextContent = (total, site, maxDay, minDay) => {
   rangeDeadline.max = maxDay;
   deadlineValue.textContent = declOfNum(rangeDeadline.value, DAY_STRING);
 
+  adaptValue.textContent = adapt.checked ? 'Да' : 'Нет';
+  mobileTemplatesValue.textContent = mobileTemplates.checked ? 'Да' : 'Нет';
+  desktopTemplatesValue.textContent = desktopTemplates.checked ? 'Да' : 'Нет';
+  editableValue.textContent = editable.checked ? 'Да' : 'Нет';
+
+  calcDescription.textContent = `
+  Сделаем ${site}${adapt.checked ? ', адаптированный под мобильные устройства и планшеты' : ''}
+  ${editable.checked ? ', установим панель админстратора, чтобы вы могли самостоятельно менять содержание на сайте без разработчика,' : ''}
+  ${dopOptionsString()}
+  `;
+
+
 };
 
-const priceCalculation = (elem) => {
+const priceCalculation = (elem= {}) => {
 
   let result = 0,
       index = 0,
       options = [],
       site = '',
+      overPercent = 0,
       maxDeadlineDay = DATA.deadlineDay[index][1],
       minDeadlineDay = DATA.deadlineDay[index][0];
 
@@ -113,8 +174,13 @@ const priceCalculation = (elem) => {
 
     } else if (item.classList.contains('calc-handler') && item.checked) {
       options.push(item.value);
+    } else if (item.classList.contains('want-faster') && item.checked) {
+      const overDay = maxDeadlineDay - rangeDeadline.value;
+      overPercent = overDay * DATA.deadlinePercent[index] / 100;
     }
   }
+
+  result += DATA.price[index];
 
   options.forEach((key) => {
     // проверка на число
@@ -136,7 +202,12 @@ const priceCalculation = (elem) => {
 
   });
 
-  result += DATA.price[index];
+
+
+
+
+
+  result += result * overPercent;
 
   renderTextContent(result, site, maxDeadlineDay, minDeadlineDay);
 
@@ -164,6 +235,8 @@ const handlerCallBackForm = (event) => {
 
     // что будет происходить если елемент чекед тру, а что если false
     target.checked ? showElem(fastRange) : hideElem(fastRange);
+
+    priceCalculation(target);
   }
 
   if (target.classList.contains('calc-handler')) {
@@ -172,10 +245,29 @@ const handlerCallBackForm = (event) => {
 
 
 };
+const moveBackTotal = () => {
+  if (document.documentElement.getBoundingClientRect().bottom > document.documentElement.clientHeight + 200) {
+    totalPrice.classList.remove('totalPriceBottom');
+    firstFieldset.after(totalPrice);
+    window.removeEventListener('scroll', moveBackTotal);
+    window.addEventListener('scroll', moveTotal);
+
+  }
+};
+
+const moveTotal = () => {
+  if (document.documentElement.getBoundingClientRect().bottom < document.documentElement.clientHeight + 200) {
+    totalPrice.classList.add('totalPriceBottom');
+    endButton.before(totalPrice);
+    window.removeEventListener('scroll', moveTotal);
+    window.addEventListener('scroll', moveBackTotal);
+  }
+};
 
 startButton.addEventListener('click', () => {
   showElem(form);
   hideElem(firstScreen);
+  window.addEventListener('scroll', moveTotal);
 });
 
 endButton.addEventListener('click', () => {
@@ -189,8 +281,14 @@ endButton.addEventListener('click', () => {
     }
   }
 
+  cardHead.textContent = 'Заявка на разработку сайта';
+
+  hideElem(totalPrice);
+
   showElem(total);
 
 });
 
 formCalculate.addEventListener('change', handlerCallBackForm);
+
+priceCalculation();
