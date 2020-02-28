@@ -1,3 +1,4 @@
+'use strict';
 const DAY_STRING = [
   'день',
   'дня',
@@ -95,7 +96,7 @@ const dopOptionsString = () => {
 
       if (analyticsGoogle.checked && sendOrder.checked) {
         str += ', Гугл Аналитику и отправку заявок на почту.'
-        return
+        return str;
       }
       if (analyticsGoogle.checked || sendOrder.checked) {
         str += ' и';
@@ -290,5 +291,18 @@ endButton.addEventListener('click', () => {
 });
 
 formCalculate.addEventListener('change', handlerCallBackForm);
+formCalculate.addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  const formData = new FormData(formCalculate);
+
+  fetch('server.php', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    body: formData,
+  });
+});
 
 priceCalculation();
